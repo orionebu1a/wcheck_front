@@ -36,7 +36,7 @@ const MapComponent = () => {
         if (addLocationBtn) {
           addLocationBtn.addEventListener('click', () => {
             // Отправка POST-запроса на бэкенд при нажатии на кнопку
-            fetch('http://localhost:5432/wc/api/location/post', {
+            fetch('http://localhost:8080/api/location/post', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
