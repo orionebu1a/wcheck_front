@@ -3,7 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 
-const getLocationsInBorders = async (south, west, north, east) => {
+const getLocationsInBorders = async (south, west, north, east, storedToken) => {
   try {
     const response = await fetch('http://localhost:8080/api/location/mapBorder', {
       method: 'POST',
@@ -11,7 +11,8 @@ const getLocationsInBorders = async (south, west, north, east) => {
         'Content-Type': 'application/json',
         'Connection' : 'keep-alive',
         'Accept-Encoding' : 'gzip, deflate, br',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${storedToken}`,
       },
       body: JSON.stringify({
         south,
@@ -33,7 +34,7 @@ const getLocationsInBorders = async (south, west, north, east) => {
   }
 };
 
-const displayMarkers = async (newMarkerRef, markersRef, map) => {
+const displayMarkers = async (newMarkerRef, markersRef, map, storedToken) => {
   if (!map) {
     console.error("Карта не проинициализирована.");
     return;
@@ -48,7 +49,7 @@ const displayMarkers = async (newMarkerRef, markersRef, map) => {
   const east = northEast.lng;
 
   // Получение локаций в пределах границ карты
-  const newLocations = await getLocationsInBorders(south, west, north, east);
+  const newLocations = await getLocationsInBorders(south, west, north, east, storedToken);
   const oldLocations = markersRef.current;
 
   let intersection = oldLocations.filter(oldLocation =>
@@ -98,9 +99,11 @@ const MapComponent = () => {
       map = L.map(mapRef.current).setView([51.505, -0.09], 13);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         
+      const storedToken = localStorage.getItem('token');
       // Отображаем маркеры при первоначальной загрузке
-      displayMarkers(newMarkerRef, markersRef, map);
-      map.on('moveend', () => displayMarkers(newMarkerRef, markersRef, map)); // Вызываем displayMarkers при перемещении карты
+      //displayMarkers(newMarkerRef, markersRef, map, localStorage.getItem('token'));
+
+      map.on('moveend', () => displayMarkers(newMarkerRef, markersRef, map, storedToken)); // Вызываем displayMarkers при перемещении карты
 
       map.on('click', (e) => {
 
@@ -139,7 +142,8 @@ const MapComponent = () => {
                   'Content-Type': 'application/json',
                   'Connection' : 'keep-alive',
                   'Accept-Encoding' : 'gzip, deflate, br',
-                  'Accept': 'application/json'
+                  'Accept': 'application/json',
+                  'Authorization': `Bearer ${storedToken}`,
                 },
                 body: JSON.stringify({ 
                   latitude: lat, 

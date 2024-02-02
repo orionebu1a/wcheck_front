@@ -2,11 +2,11 @@
 import React, { useState } from 'react';
 
 const RegForm = () => {
-  const [userName, setUsername] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   const handleRegister = async() => {
-    const response = await fetch('http://localhost:8080/api/register', {
+    const response = await fetch('http://localhost:8080/auth/sign-up', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -15,14 +15,17 @@ const RegForm = () => {
         'Accept': 'application/json'
       },
       body: JSON.stringify({
-        userName,
+        username,
         password
       }),
     });
     if (!response.ok) {
       throw new Error('Ошибка регистрации');
     }
-    console.log('Регистрация:', { userName, password });
+    const data = await response.json();
+    const token = data.token;
+    localStorage.setItem('token', token);
+    console.log('Регистрация:', { username, password, token });
   };
 
   return (
@@ -30,7 +33,7 @@ const RegForm = () => {
       <h2>Регистрация</h2>
       <label>
         Имя пользователя:
-        <input type="text" value={userName} onChange={(e) => setUsername(e.target.value)} />
+        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} />
       </label>
       <br />
       <label>

@@ -2,11 +2,11 @@
 import React, { useState } from 'react';
 
 const LogForm = () => {
-  const [userName, setUsername] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = async() => {
-    const response = await fetch('http://localhost:8080/api/login', {
+    const response = await fetch('http://localhost:8080/auth/sign-in', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -15,14 +15,17 @@ const LogForm = () => {
         'Accept': 'application/json'
       },
       body: JSON.stringify({
-        userName,
+        username,
         password
       }),
     });
     if (!response.ok) {
       throw new Error('Ошибка входа');
     }
-    console.log('Вход:', { userName, password });
+    const data = await response.json();
+    const token = data.token;
+    localStorage.setItem('token', token);
+    console.log('Вход:', { username, password, token });
   };
 
   return (
@@ -30,7 +33,7 @@ const LogForm = () => {
       <h2>Вход</h2>
       <label>
         Имя пользователя:
-        <input type="text" value={userName} onChange={(e) => setUsername(e.target.value)} />
+        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} />
       </label>
       <br />
       <label>
