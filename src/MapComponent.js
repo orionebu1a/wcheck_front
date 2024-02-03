@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useRef} from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import customMarkerImage from './/pngwing.com.png';
 
+const width = 13 * 2;
+const height = 19 * 2;
+const iconSize = [width, height];
+const iconAnchor = [iconSize[0] / 2, iconSize[1] / 2];
+const popupAnchor = [iconSize[0] / 2, 0];
 
 const createAddLocationHandler = (lat, lng) => () => {
   const storedToken = localStorage.getItem('token');
@@ -110,7 +116,14 @@ const displayMarkers = async (newMarkerRef, markersRef, map, storedToken) => {
     });
 
       updateTo.forEach((location) => {
-        const marker = L.marker([location.latitude, location.longitude, location.id]).addTo(map);
+        const marker = L.marker([location.latitude, location.longitude, location.id], {
+          icon: L.icon({
+            iconUrl: customMarkerImage,
+            iconSize: [width, height], // укажите размеры изображения
+            iconAnchor: [iconAnchor[0], iconAnchor[1]], // укажите якорные точки изображения
+            popupAnchor: [popupAnchor[0], popupAnchor[1]], // укажите точку всплывающего окна
+          }),
+        }).addTo(map);
         //marker.bindPopup(`<b>${location.name}</b>`);
         markersRef.current.push(marker);
     });
