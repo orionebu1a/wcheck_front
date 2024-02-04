@@ -6,8 +6,8 @@ import customMarkerImage from './/pngwing.com.png';
 const width = 13 * 2;
 const height = 19 * 2;
 const iconSize = [width, height];
-const iconAnchor = [iconSize[0] / 2, iconSize[1] / 2];
-const popupAnchor = [iconSize[0] / 2, 0];
+const iconAnchor = [0, 0];
+const popupAnchor = [0, 0];
 
 const createAddLocationHandler = (lat, lng) => () => {
   const storedToken = localStorage.getItem('token');
@@ -116,7 +116,7 @@ const displayMarkers = async (newMarkerRef, markersRef, map, storedToken) => {
     });
 
       updateTo.forEach((location) => {
-        const marker = L.marker([location.latitude, location.longitude, location.id], {
+        const marker = L.marker([location.latitude, location.longitude], {
           icon: L.icon({
             iconUrl: customMarkerImage,
             iconSize: [width, height], // укажите размеры изображения
@@ -124,7 +124,18 @@ const displayMarkers = async (newMarkerRef, markersRef, map, storedToken) => {
             popupAnchor: [popupAnchor[0], popupAnchor[1]], // укажите точку всплывающего окна
           }),
         }).addTo(map);
-        //marker.bindPopup(`<b>${location.name}</b>`);
+        const popupContent = `
+          <div>
+            <p>Latitude: ${location.latitude.toFixed(4)}</p>
+            <p>Longitude: ${location.longitude.toFixed(4)}</p>
+            <button onclick="upvoteLocation(${location.id})">Апвоут</button>
+            <button onclick="addPhotoToLocation(${location.id})">Добавить фото</button>
+          </div>
+        `;
+
+        const popup = L.popup().setContent(popupContent);
+        marker.bindPopup(popup);
+
         markersRef.current.push(marker);
     });
 
@@ -144,7 +155,7 @@ const MapComponent = () => {
     setAddMode((prevMode) => !prevMode);
   };
 
-  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedMarker, setSelectedMarker] = useState(null);
 
   useEffect(() => {
     // Создаем карту при монтировании компонента
@@ -188,8 +199,6 @@ const MapComponent = () => {
         if (addLocationBtn) {
           addLocationBtn.addEventListener('click', createAddLocationHandler(lat, lng));
         }
-      } else {
-        // Код для отображения существующей локации
       }
     });
 
@@ -202,33 +211,6 @@ const MapComponent = () => {
     };
   }, [addMode]);
 
-  const displayExistingLocationPopup = (location) => {
-    const { latitude, longitude, id } = location;
-
-    const popupContent = `
-      <div>
-        <p>Latitude: ${latitude.toFixed(4)}</p>
-        <p>Longitude: ${longitude.toFixed(4)}</p>
-        <button onclick="upvoteLocation(${id})">Апвоут</button>
-        <button onclick="addPhotoToLocation(${id})">Добавить фото</button>
-      </div>
-    `;
-
-    const popup = L.popup().setContent(popupContent);
-
-    // Создаем маркер для существующей локации
-    const marker = L.marker([latitude, longitude]).addTo(mapRef.current);
-
-    // Привязываем popup к маркеру
-    marker.bindPopup(popup);
-
-    // Обработчик клика на маркер
-    marker.on('click', () => {
-      setSelectedLocation(location); // Устанавливаем выбранную локацию при клике на маркер
-    });
-  };
-
-  // Функция для обработки апвоута локации
   window.upvoteLocation = (locationId) => {
     // Ваш код для апвоута локации
     console.log(`Upvote location with ID ${locationId}`);
@@ -239,13 +221,6 @@ const MapComponent = () => {
     // Ваш код для добавления фото к локации
     console.log(`Add photo to location with ID ${locationId}`);
   };
-
-  // Эффект для отображения popup при выборе существующей локации
-  useEffect(() => {
-    if (selectedLocation) {
-      displayExistingLocationPopup(selectedLocation);
-    }
-  }, [selectedLocation]);
 
   const mapStyles = {
     height: '800px',
