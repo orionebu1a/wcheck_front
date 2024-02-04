@@ -212,13 +212,34 @@ const MapComponent = () => {
   }, [addMode]);
 
   window.upvoteLocation = (locationId) => {
-    // Ваш код для апвоута локации
+    const storedToken = localStorage.getItem('token');
+    fetch(`http://localhost:8080/api/location/${locationId}/upvote`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Connection' : 'keep-alive',
+        'Accept-Encoding' : 'gzip, deflate, br',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${storedToken}`,
+      }
+    })
+    .then((response) => {
+      if (response.ok) {
+        console.log('Месту добавлен рейтинг!');
+      } else {
+        console.error('Рейтинг не добавлен');
+      }
+    })
+    .catch((error) => {
+      console.error('Ошибка сети:', error);
+    });
+
     console.log(`Upvote location with ID ${locationId}`);
   };
 
-  // Функция для добавления фото к локации
+
   window.addPhotoToLocation = (locationId) => {
-    // Ваш код для добавления фото к локации
+    
     console.log(`Add photo to location with ID ${locationId}`);
   };
 
