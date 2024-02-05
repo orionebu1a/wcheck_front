@@ -135,7 +135,7 @@ const displayMarkers = async (newMarkerRef, markersRef, map, storedToken, marker
           <div>
             <p>Latitude: ${location.latitude.toFixed(4)}</p>
             <p>Longitude: ${location.longitude.toFixed(4)}</p>
-            <p>Votes ${location.votes}</p>
+            <p id="votes">Votes: ${location.votes}</p>
             <button onclick="upvoteLocation(${location.id})">Апвоут</button>
             <button onclick="addPhotoToLocation(${location.id})">Добавить фото</button>
           </div>
@@ -144,7 +144,7 @@ const displayMarkers = async (newMarkerRef, markersRef, map, storedToken, marker
         const popup = L.popup().setContent(popupContent);
         marker.bindPopup(popup);
 
-        markersRef.current.push(marker);
+        //markersRef.current.push(marker);
     });
 
     setOldLocations(newLocations);
@@ -239,10 +239,29 @@ const MapComponent = () => {
         'Authorization': `Bearer ${storedToken}`,
       }
     })
-    .then((response) => {
+    .then(async (response) => {
       if (response.ok) {
-        setShouldUpdateLocations(true);
+        const data = await response.json();
+        console.log(data);
+        const votes = data.votes;
+        const votesElement = document.getElementById('votes');
+
+        const popupContent = `
+          <div>
+            <p>Latitude: ${data.latitude.toFixed(4)}</p>
+            <p>Longitude: ${data.longitude.toFixed(4)}</p>
+            <p id="votes">Votes: ${data.votes}</p>
+            <button onclick="upvoteLocation(${data.id})">Апвоут</button>
+            <button onclick="addPhotoToLocation(${data.id})">Добавить фото</button>
+          </div>
+        `;
+        const marker = locationMarkerMapRef.current[locationId];
+        const popup = L.popup().setContent(popupContent);
+        mapRef.current.closePopup();
+        marker.bindPopup(popup).openPopup();;
+
         console.log('Месту добавлен рейтинг!');
+        console.log('Число голосов:', votes);
       } else {
         console.error('Рейтинг не добавлен');
       }
@@ -254,15 +273,16 @@ const MapComponent = () => {
     console.log(`Upvote location with ID ${locationId}`);
   };
 
-  // useEffect(() => {
-  //   // Вызываем displayMarkers при изменении shouldUpdateLocations
-  //   if (shouldUpdateLocations) {
-  //     displayMarkers(newMarkerRef, markersRef, mapRef.current, localStorage.getItem('token'), markerLocationMapRef, locationMarkerMapRef, oldLocations, setOldLocations);
+  useEffect(() => {
+    // Вызываем displayMarkers при изменении shouldUpdateLocations
+    if (shouldUpdateLocations) {
+
+      displayMarkers(newMarkerRef, markersRef, mapRef.current, localStorage.getItem('token'), markerLocationMapRef, locationMarkerMapRef, oldLocations, setOldLocations);
       
-  //     // Сбрасываем shouldUpdateLocations после обновления данных
-  //     setShouldUpdateLocations(false);
-  //   }
-  // }, [shouldUpdateLocations]);
+      // Сбрасываем shouldUpdateLocations после обновления данных
+      setShouldUpdateLocations(false);
+    }
+  }, [shouldUpdateLocations]);
 
 
   window.addPhotoToLocation = (locationId) => {
