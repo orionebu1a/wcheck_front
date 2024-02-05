@@ -70,7 +70,7 @@ const getLocationsInBorders = async (south, west, north, east, storedToken) => {
   }
 };
 
-const displayMarkers = async (newMarkerRef, markersRef, map, storedToken) => {
+const displayMarkers = async (newMarkerRef, markersRef, map, storedToken, markerLocationMapRef, locationMarkerMapRef, oldLocations, setOldLocations) => {
   if (!map) {
     console.error("Карта не проинициализирована.");
     return;
@@ -86,7 +86,7 @@ const displayMarkers = async (newMarkerRef, markersRef, map, storedToken) => {
 
   // Получение локаций в пределах границ карты
   const newLocations = await getLocationsInBorders(south, west, north, east, storedToken);
-  const oldLocations = markersRef.current;
+  
 
   let intersection = oldLocations.filter(oldLocation =>
     newLocations.some(newLocation =>
@@ -106,7 +106,9 @@ const displayMarkers = async (newMarkerRef, markersRef, map, storedToken) => {
     )
   );
       //Удаление старых маркеров перед обновлением
-    removeTo.forEach((marker) => {
+    removeTo.forEach((location) => {
+      const marker = locationMarkerMapRef.current[location.id];
+      //remove
       if(marker !== newMarkerRef.current){
         if (marker.getPopup()) {
           marker.unbindPopup().closePopup();
@@ -124,10 +126,16 @@ const displayMarkers = async (newMarkerRef, markersRef, map, storedToken) => {
             popupAnchor: [popupAnchor[0], popupAnchor[1]], // укажите точку всплывающего окна
           }),
         }).addTo(map);
+
+        const markerId = L.stamp(marker);
+        markerLocationMapRef.current[markerId] = location.id;
+        locationMarkerMapRef.current[location.id] = marker;
+
         const popupContent = `
           <div>
             <p>Latitude: ${location.latitude.toFixed(4)}</p>
             <p>Longitude: ${location.longitude.toFixed(4)}</p>
+            <p>Votes ${location.votes}</p>
             <button onclick="upvoteLocation(${location.id})">Апвоут</button>
             <button onclick="addPhotoToLocation(${location.id})">Добавить фото</button>
           </div>
@@ -139,6 +147,7 @@ const displayMarkers = async (newMarkerRef, markersRef, map, storedToken) => {
         markersRef.current.push(marker);
     });
 
+    setOldLocations(newLocations);
     markersRef.current = markersRef.current.filter(marker => !removeTo.includes(marker));
 
 };
@@ -148,12 +157,19 @@ const MapComponent = () => {
   const mapRef = useRef(null);
   const markersRef = useRef([]); 
   let newMarkerRef = useRef(null);
+  const markerLocationMapRef = useRef({});
+  const locationMarkerMapRef = useRef({});
 
-  const [addMode, setAddMode] = useState(false);
+  const [oldLocations, setOldLocations] = useState([]);
 
-  const toggleAddMode = () => {
-    setAddMode((prevMode) => !prevMode);
-  };
+  const [shouldUpdateLocations, setShouldUpdateLocations] = useState(false);
+
+
+  // const [addMode, setAddMode] = useState(false);
+
+  // const toggleAddMode = () => {
+  //   setAddMode((prevMode) => !prevMode);
+  // };
 
   const [selectedMarker, setSelectedMarker] = useState(null);
 
@@ -166,39 +182,39 @@ const MapComponent = () => {
 
     const storedToken = localStorage.getItem('token');
 
-    mapRef.current.on('moveend', () => displayMarkers(newMarkerRef, markersRef, mapRef.current, storedToken));
+    mapRef.current.off('moveend');
+    mapRef.current.on('moveend', () => displayMarkers(newMarkerRef, markersRef, mapRef.current, storedToken, markerLocationMapRef, locationMarkerMapRef, oldLocations, setOldLocations));
+
     mapRef.current.on('click', (e) => {
       const myMap = mapRef.current;
-      if (addMode) {
-        const { lat, lng } = e.latlng;
-        if (newMarkerRef && newMarkerRef.current && myMap.hasLayer(newMarkerRef.current)) {
-          const removedMarker = newMarkerRef.current;
-          myMap.removeLayer(removedMarker);
-          markersRef.current = markersRef.current.filter(marker => marker !== removedMarker);
-        }
+      const { lat, lng } = e.latlng;
+      if (newMarkerRef && newMarkerRef.current && myMap.hasLayer(newMarkerRef.current)) {
+        const removedMarker = newMarkerRef.current;
+        myMap.removeLayer(removedMarker);
+        markersRef.current = markersRef.current.filter(marker => marker !== removedMarker);
+      }
 
-        const marker = L.marker([lat, lng]).addTo(myMap);
-        newMarkerRef.current = marker;
-        markersRef.current.push(marker);
+      const marker = L.marker([lat, lng]).addTo(myMap);
+      newMarkerRef.current = marker;
+      markersRef.current.push(marker);
 
-        const oldAddLocationBtn = document.getElementById('addLocationBtn');
-        if (oldAddLocationBtn) {
-          console.log('Удаляется старая кнопка');
-          oldAddLocationBtn.remove();
-        }
+      const oldAddLocationBtn = document.getElementById('addLocationBtn');
+      if (oldAddLocationBtn) {
+        console.log('Удаляется старая кнопка');
+        oldAddLocationBtn.remove();
+      }
 
-        const popupContent = `<div>Latitude: ${lat.toFixed(4)}</div><div>Longitude: ${lng.toFixed(4)}</div><button id="addLocationBtn">Добавить место</button>`;
-        const popup = L.popup().setContent(popupContent);
+      const popupContent = `<div>Latitude: ${lat.toFixed(4)}</div><div>Longitude: ${lng.toFixed(4)}</div><button id="addLocationBtn">Добавить место</button>`;
+      const popup = L.popup().setContent(popupContent);
 
-        // Привязка всплывающего окна к маркеру
-        marker.bindPopup(popup).openPopup();
+      // Привязка всплывающего окна к маркеру
+      marker.bindPopup(popup).openPopup();
 
-        // Обработчик события для кнопки во всплывающем окне
-        const addLocationBtn = document.getElementById('addLocationBtn');
+      // Обработчик события для кнопки во всплывающем окне
+      const addLocationBtn = document.getElementById('addLocationBtn');
 
-        if (addLocationBtn) {
-          addLocationBtn.addEventListener('click', createAddLocationHandler(lat, lng));
-        }
+      if (addLocationBtn) {
+        addLocationBtn.addEventListener('click', createAddLocationHandler(lat, lng));
       }
     });
 
@@ -209,7 +225,7 @@ const MapComponent = () => {
       //   mapRef.current.remove();
       // }
     };
-  }, [addMode]);
+  }, [window.upvoteLocation]);
 
   window.upvoteLocation = (locationId) => {
     const storedToken = localStorage.getItem('token');
@@ -225,6 +241,7 @@ const MapComponent = () => {
     })
     .then((response) => {
       if (response.ok) {
+        setShouldUpdateLocations(true);
         console.log('Месту добавлен рейтинг!');
       } else {
         console.error('Рейтинг не добавлен');
@@ -236,6 +253,16 @@ const MapComponent = () => {
 
     console.log(`Upvote location with ID ${locationId}`);
   };
+
+  // useEffect(() => {
+  //   // Вызываем displayMarkers при изменении shouldUpdateLocations
+  //   if (shouldUpdateLocations) {
+  //     displayMarkers(newMarkerRef, markersRef, mapRef.current, localStorage.getItem('token'), markerLocationMapRef, locationMarkerMapRef, oldLocations, setOldLocations);
+      
+  //     // Сбрасываем shouldUpdateLocations после обновления данных
+  //     setShouldUpdateLocations(false);
+  //   }
+  // }, [shouldUpdateLocations]);
 
 
   window.addPhotoToLocation = (locationId) => {
@@ -262,13 +289,6 @@ const MapComponent = () => {
   return (
     <div>
       <div ref={mapContainerRef} style={mapStyles} className="leaflet-container" />
-
-      <div style={switchStyles}>
-        <label>
-          <input type="checkbox" checked={addMode} onChange={toggleAddMode} />
-          Добавление локаций
-        </label>
-      </div>
     </div>
   );
 };
