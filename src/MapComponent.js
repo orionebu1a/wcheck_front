@@ -9,7 +9,7 @@ const iconSize = [width, height];
 const iconAnchor = [0, 0];
 const popupAnchor = [0, 0];
 
-const createAddLocationHandler = (lat, lng) => () => {
+const createAddLocationHandler = (lat, lng, hashtagValue) => () => {
   const storedToken = localStorage.getItem('token');
 
   // Отправка POST-запроса на бэкенд при нажатии на кнопку
@@ -24,7 +24,8 @@ const createAddLocationHandler = (lat, lng) => () => {
     },
     body: JSON.stringify({ 
       latitude: lat, 
-      longitude: lng
+      longitude: lng,
+      hashtag: hashtagValue
     }),
   })
     .then((response) => {
@@ -203,8 +204,11 @@ const MapComponent = () => {
         console.log('Удаляется старая кнопка');
         oldAddLocationBtn.remove();
       }
-
-      const popupContent = `<div>Latitude: ${lat.toFixed(4)}</div><div>Longitude: ${lng.toFixed(4)}</div><button id="addLocationBtn">Добавить место</button>`;
+      
+      const popupContent = `<div>Latitude: ${lat.toFixed(4)}</div>
+      <div>Longitude: ${lng.toFixed(4)}</div>
+      <input type="text" id="hashtagInput" placeholder="Введите хэштег">
+      <button id="addLocationBtn">Добавить место</button>`;
       const popup = L.popup().setContent(popupContent);
 
       // Привязка всплывающего окна к маркеру
@@ -214,7 +218,9 @@ const MapComponent = () => {
       const addLocationBtn = document.getElementById('addLocationBtn');
 
       if (addLocationBtn) {
-        addLocationBtn.addEventListener('click', createAddLocationHandler(lat, lng));
+        const hashtagInput = document.getElementById('hashtagInput');
+        const hashtagValue = hashtagInput.value;
+        addLocationBtn.addEventListener('click', createAddLocationHandler(lat, lng, hashtagValue));
       }
     });
 
@@ -286,8 +292,23 @@ const MapComponent = () => {
 
 
   window.addPhotoToLocation = (locationId) => {
-    
     console.log(`Add photo to location with ID ${locationId}`);
+  };
+
+  const handleLogout = () => {
+    const storedToken = localStorage.getItem('token');
+    fetch(`http://localhost:8080/auth/logout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Connection' : 'keep-alive',
+        'Accept-Encoding' : 'gzip, deflate, br',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${storedToken}`,
+      }
+    })
+    localStorage.removeItem('token');
+    console.log('Выполнение logout');
   };
 
   const mapStyles = {
@@ -306,9 +327,17 @@ const MapComponent = () => {
     boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
   };
 
+  const buttonStyle = {
+    position: 'absolute',
+    top: '10px',
+    right: '10px',
+    zIndex: '1000',
+  };
+
   return (
     <div>
       <div ref={mapContainerRef} style={mapStyles} className="leaflet-container" />
+      <button onClick={handleLogout} style={buttonStyle}>Logout</button>
     </div>
   );
 };
